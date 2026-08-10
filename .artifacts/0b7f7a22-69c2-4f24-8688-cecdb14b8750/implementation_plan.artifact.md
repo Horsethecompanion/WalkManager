@@ -1,26 +1,33 @@
-# Walkmanager: Auto-Restore Reliability and Polling
+# Walkmanager: Final Stability and Scanner Hardening
 
-The app now launches automatically but often fails to restore the music folder immediately, requiring manual selection. This is likely because the Walkman takes a few seconds to fully mount its storage after the USB connection is established.
-
-This plan adds a robust polling mechanism to wait for the device to become ready before giving up.
+This plan addresses the persistent crash after selecting the Music folder and cleans up the "Code Analysis" warnings reported during the last commit.
 
 ## Proposed Changes
 
-### 1. Robust Polling in `WalkmanViewModel`
-- **Retry Logic**: Update `tryAutoRestore` to attempt to access the persisted URI up to 5 times, with a 2-second delay between attempts (10 seconds total).
-- **Existence Check**: Specifically handle the case where the URI is "found" but `doc.exists()` or `doc.canRead()` returns false, which is typical during the device's mounting phase.
+### 1. High-Performance Scanner Hardening
+- **Index Safety**: Update `loadTracksHighPerformance` to use `getColumnIndexOrThrow` or verify that indices are not `-1`.
+- **Null Safety**: Handle potential null values from `cursor.getString()` and `cursor.getLong()` more gracefully.
+- **URI Construction**: Ensure `docId` is valid before calling `buildDocumentUriUsingTree`.
 
-### 2. UI Feedback
-- **"Waiting for Device" State**: Add a new state in `WalkmanManagerState` to track if we are specifically waiting for a known device to mount.
-- **Loading Screen Update**: Display "Waiting for Walkman to mount..." during the polling phase so the user knows the app is actively working to restore the session.
+### 2. UI Error Transparency
+- **Detailed Error State**: If a scan fails, show the **actual exception message** in the error banner instead of a generic "Failed to load" message. This will help diagnose the issue if it persists.
 
-### 3. Permission Management
-- Ensure `persistedUriPermissions` are handled correctly even if the underlying volume is temporarily missing.
+### 3. Code Cleanup (Lint Fixes)
+- Remove unused imports.
+- Fill the empty `onNewIntent` stub.
+- Standardize private property names (no underscores).
+- Use KTX extension functions where recommended (e.g., `prefs.edit { ... }`).
+- Fix missing trailing commas and logic stubs.
+
+### 4. Build System Integrity
+- Perform a `./gradlew clean` before rebuilding to ensure no stale artifacts (like the `NoSuchMethodError` found in logs) remain in the APK.
 
 ## Verification Plan
 
 ### Automated Tests
-- Build check: `./gradlew :app:assembleDebug`.
+- Build check: `./gradlew clean :app:assembleDebug`.
 
 ### Manual Verification
-- **Test Auto-Restore**: Plug in the Walkman. The app should launch and show "Waiting for Walkman to mount...". Within a few seconds, it should automatically load the music library without manual navigation.
+- Deploy to device.
+- Select the Music folder.
+- If it crashes, I will ask for the message in the "Error Banner" or a fresh Logcat capture.

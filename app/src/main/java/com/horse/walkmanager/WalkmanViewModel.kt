@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,13 +15,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.ArrayDeque
+import kotlin.time.Duration.Companion.seconds
 
 class WalkmanViewModel : ViewModel() {
     private val _state = MutableStateFlow(WalkmanManagerState())
     val state: StateFlow<WalkmanManagerState> = _state.asStateFlow()
 
-    private val PREFS_NAME = "walkman_prefs"
-    private val KEY_LAST_URI = "last_walkman_uri"
+    private val prefsName = "walkman_prefs"
+    private val keyLastUri = "last_walkman_uri"
 
     fun setWalkmanRoot(rootUri: Uri, context: Context) {
         _state.value = _state.value.copy(walkmanRootUri = rootUri)
@@ -28,8 +31,8 @@ class WalkmanViewModel : ViewModel() {
     }
 
     private fun persistRootUri(uri: Uri, context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_LAST_URI, uri.toString()).apply()
+        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+        prefs.edit { putString(keyLastUri, uri.toString()) }
         
         try {
             val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
@@ -42,12 +45,12 @@ class WalkmanViewModel : ViewModel() {
 
     fun tryAutoRestore(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val uriString = prefs.getString(KEY_LAST_URI, null) ?: return@launch
+            val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+            val uriString = prefs.getString(keyLastUri, null) ?: return@launch
             
             try {
                 _state.value = _state.value.copy(isLoading = true, isWaitingForMount = true)
-                val uri = Uri.parse(uriString)
+                val uri = uriString.toUri()
                 
                 // Retry loop for up to 10 seconds (5 attempts * 2s delay)
                 var attempts = 0
@@ -71,7 +74,7 @@ class WalkmanViewModel : ViewModel() {
                     
                     attempts++
                     android.util.Log.d("WalkmanViewModel", "Device not ready, retry $attempts...")
-                    kotlinx.coroutines.delay(2000)
+                    kotlinx.coroutines.delay(2.seconds)
                 }
                 
                 // If we reach here, we failed to restore
@@ -106,7 +109,7 @@ class WalkmanViewModel : ViewModel() {
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = "Failed to load tracks: ${e.message}"
+                    error = "Failed to load tracks: ${e.localizedMessage ?: e.message}"
                 )
             }
         }
@@ -117,59 +120,78 @@ class WalkmanViewModel : ViewModel() {
         val queue = ArrayDeque<Uri>()
         val visited = mutableSetOf<Uri>()
 
-        // For SAF Tree URIs, we need the documentId of the root
-        val rootDocId = DocumentsContract.getTreeDocumentId(rootUri)
-        val rootDocUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, rootDocId)
-        
-        queue.add(rootDocUri)
-        visited.add(rootDocUri)
-
-        android.util.Log.d("WalkmanScanner", "Starting HP scan from: $rootDocUri")
-
-        while (queue.isNotEmpty()) {
-            val parentUri = queue.removeFirst()
-            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, DocumentsContract.getDocumentId(parentUri))
+        try {
+            // For SAF Tree URIs, we need the documentId of the root
+            val rootDocId = DocumentsContract.getTreeDocumentId(rootUri)
+            val rootDocUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, rootDocId)
             
-            context.contentResolver.query(
-                childrenUri,
-                arrayOf(
-                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                    DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    DocumentsContract.Document.COLUMN_SIZE
-                ),
-                null, null, null
-            )?.use { cursor ->
-                val idIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                val nameIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                val mimeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
-                val sizeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+            queue.add(rootDocUri)
+            visited.add(rootDocUri)
 
-                while (cursor.moveToNext()) {
-                    val docId = cursor.getString(idIdx)
-                    val name = cursor.getString(nameIdx)
-                    val mime = cursor.getString(mimeIdx)
-                    val size = cursor.getLong(sizeIdx)
-                    val docUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)
+            android.util.Log.d("WalkmanScanner", "Starting HP scan from: $rootDocUri")
 
-                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                        if (!visited.contains(docUri)) {
-                            visited.add(docUri)
-                            queue.add(docUri)
-                        }
-                    } else if (mime.startsWith("audio/")) {
-                        allTracks.add(Track(
-                            uri = docUri,
-                            name = name ?: "Unknown",
-                            fileName = name ?: "unknown.mp3",
-                            size = size,
-                            mimeType = mime
-                        ))
+            while (queue.isNotEmpty()) {
+                val parentUri = queue.removeFirst()
+                val parentDocId = try { 
+                    DocumentsContract.getDocumentId(parentUri) 
+                } catch (e: Exception) { 
+                    continue 
+                }
+                
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, parentDocId)
+                
+                context.contentResolver.query(
+                    childrenUri,
+                    arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                        DocumentsContract.Document.COLUMN_MIME_TYPE,
+                        DocumentsContract.Document.COLUMN_SIZE
+                    ),
+                    null, null, null
+                )?.use { cursor ->
+                    val idIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                    val nameIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    val mimeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                    val sizeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+
+                    if (idIdx == -1 || nameIdx == -1 || mimeIdx == -1 || sizeIdx == -1) {
+                        android.util.Log.e("WalkmanScanner", "Required columns missing in cursor")
+                        return@use
                     }
-                    
-                    if (allTracks.size > 20000) return allTracks
+
+                    while (cursor.moveToNext()) {
+                        val docId = cursor.getString(idIdx) ?: continue
+                        val name = cursor.getString(nameIdx)
+                        val mime = cursor.getString(mimeIdx) ?: ""
+                        val size = if (cursor.isNull(sizeIdx)) 0L else cursor.getLong(sizeIdx)
+                        val docUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)
+
+                        if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                            if (!visited.contains(docUri)) {
+                                visited.add(docUri)
+                                queue.add(docUri)
+                            }
+                        } else if (mime.startsWith("audio/")) {
+                            allTracks.add(Track(
+                                uri = docUri,
+                                name = name ?: "Unknown",
+                                fileName = name ?: "unknown.mp3",
+                                size = size,
+                                mimeType = mime
+                            ))
+                        }
+                        
+                        if (allTracks.size > 20000) {
+                            android.util.Log.w("WalkmanScanner", "Soft limit of 20,000 tracks reached.")
+                            return allTracks
+                        }
+                    }
                 }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("WalkmanScanner", "Fatal error during scan: ${e.message}", e)
+            throw e
         }
         
         android.util.Log.d("WalkmanScanner", "HP scan finished: ${allTracks.size} tracks")

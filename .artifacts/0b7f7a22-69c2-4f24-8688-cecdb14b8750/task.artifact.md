@@ -1,13 +1,11 @@
-- [x] Harden Scanner Logic
-    - [x] Implement iterative scanning with `ArrayDeque`
-    - [x] Add loop detection using `visitedUris` Set
-    - [x] Add explicit null-checks for `listFiles()`
-    - [x] Add comprehensive logging with "WalkmanScanner" tag
-- [x] Improve Memory Management
-    - [x] Add safety track limit (20k)
-    - [x] Ensure `Dispatchers.IO` is used for all file I/O
-- [x] Implement Auto-Restore Polling
-    - [x] Add retry loop to `tryAutoRestore`
-    - [x] Show "Waiting for mount" UI state
-- [x] Run Gradle Sync and Build
-- [x] Package and Deploy to Pixel 8
+- [/] Harden High-Performance Scanner
+    - [ ] Add `getColumnIndexOrThrow` and validation
+    - [ ] Implement robust null-handling for cursor data
+    - [ ] Add detailed exception logging to UI error state
+- [/] Clean up Code Analysis Warnings
+    - [ ] Remove unused imports in `MainActivity.kt`
+    - [ ] Fix empty `onNewIntent` and foldable `if` stubs
+    - [ ] Standardize property naming in `WalkmanViewModel.kt`
+    - [ ] Use KTX extensions for `SharedPreferences`
+- [ ] Perform Deep Clean and Rebuild
+- [ ] Commit changes to Git

@@ -1,7 +1,6 @@
 package com.horse.walkmanager
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,13 +23,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: WalkmanViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(this)[WalkmanViewModel::class.java]
         
         setContent {
             WalkmanManagerTheme {
@@ -38,7 +40,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val viewModel: WalkmanViewModel = viewModel()
                     val context = LocalContext.current
                     
                     LaunchedEffect(Unit) {
@@ -55,7 +56,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // Handle USB attach while app is already running
         if (intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-            // Signal ViewModel to refresh or re-check
+            viewModel.tryAutoRestore(applicationContext)
         }
     }
 }
@@ -69,9 +70,7 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
     val walkmanBrowserLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
-        if (uri != null) {
-            viewModel.setWalkmanRoot(uri, context)
-        }
+        uri?.let { viewModel.setWalkmanRoot(it, context) }
     }
 
     val trackPickerLauncher = rememberLauncherForActivityResult(
@@ -269,7 +268,7 @@ fun TrackItem(
     track: Track,
     isSelected: Boolean,
     onSelect: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
