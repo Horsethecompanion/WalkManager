@@ -2,6 +2,7 @@ package com.horse.walkmanager
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.content.edit
@@ -92,12 +93,21 @@ class WalkmanViewModel : ViewModel() {
                 _state.value = _state.value.copy(isLoading = true, error = null)
                 
                 val tracks = loadTracksHighPerformance(context.applicationContext, rootUri)
+                    .map { track ->
+                        // Extract BPM if not already present
+                        if (track.bpm == null) {
+                            val bpm = extractBPM(context, track.uri)
+                            track.copy(bpm = bpm)
+                        } else {
+                            track
+                        }
+                    }
                     .sortedWith(
                         compareBy { 
                             when (_state.value.sortOption) {
                                 SortOption.ByName -> it.name.lowercase()
                                 SortOption.BySize -> it.size
-                                SortOption.ByBPM -> it.bpm ?: 0
+                                SortOption.ByBPM -> it.bpm ?: Int.MAX_VALUE // Put unknown BPM at end
                             }
                         }
                     )
@@ -115,13 +125,27 @@ class WalkmanViewModel : ViewModel() {
         }
     }
 
+    private fun extractBPM(context: Context, trackUri: Uri): Int? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, trackUri)
+            
+            val bpmString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BEATS_PER_MINUTE)
+            retriever.release()
+            
+            bpmString?.toIntOrNull()?.takeIf { it > 0 }
+        } catch (e: Exception) {
+            android.util.Log.d("BPMExtractor", "Could not extract BPM from ${trackUri.lastPathSegment}: ${e.message}")
+            null
+        }
+    }
+
     private fun loadTracksHighPerformance(context: Context, rootUri: Uri): List<Track> {
         val allTracks = mutableListOf<Track>()
         val queue = ArrayDeque<Uri>()
         val visited = mutableSetOf<Uri>()
 
         try {
-            // For SAF Tree URIs, we need the documentId of the root
             val rootDocId = DocumentsContract.getTreeDocumentId(rootUri)
             val rootDocUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, rootDocId)
             

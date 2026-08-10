@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this)[WalkmanViewModel::class.java]
         
         setContent {
-            WalkmanManagerTheme {
+            WalkManagerTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                         viewModel.tryAutoRestore(context)
                     }
                     
-                    WalkmanManagerScreen(viewModel)
+                    WalkManagerScreen(viewModel)
                 }
             }
         }
@@ -54,7 +54,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Handle USB attach while app is already running
         if (intent.action == android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED) {
             viewModel.tryAutoRestore(applicationContext)
         }
@@ -63,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
+fun WalkManagerScreen(viewModel: WalkmanViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
@@ -87,7 +86,7 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
-            title = { Text("Walkman Manager") },
+            title = { Text("WalkManager") },
             actions = {
                 if (state.walkmanRootUri != null) {
                     IconButton(
@@ -101,7 +100,38 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
 
         // Error Snackbar
         if (state.error != null) {
-            // ... (keep error UI)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.errorContainer),
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        state.error ?: "",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    IconButton(
+                        onClick = { viewModel.clearError() },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            "Dismiss",
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
         }
 
         if (state.isLoading) {
@@ -113,9 +143,9 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        if (state.isWaitingForMount) "Waiting for Walkman to mount..."
+                        if (state.isWaitingForMount) "Waiting for WalkManager to mount..."
                         else if (state.walkmanRootUri != null) "Refreshing tracks..." 
-                        else "Connecting to Walkman...",
+                        else "Scanning...",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -130,29 +160,31 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    Icons.Filled.SdCard,
+                    Icons.Filled.AudioFile,
                     "No device",
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outline
+                    modifier = Modifier.size(72.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "No Walkman Connected",
+                    "No Device Connected",
                     style = MaterialTheme.typography.headlineSmall
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "Connect your Walkman via USB and select it below to manage your music.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 Button(
-                    onClick = { walkmanBrowserLauncher.launch(null) }
+                    onClick = { walkmanBrowserLauncher.launch(null) },
+                    modifier = Modifier.height(40.dp)
                 ) {
                     Icon(Icons.Filled.FolderOpen, "Browse", modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select Walkman Folder")
+                    Text("Select Device")
                 }
             }
         } else {
@@ -173,36 +205,38 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp),
+                                .padding(bottom = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "${state.tracks.size} tracks",
+                                "${state.tracks.size} track${if (state.tracks.size != 1) "s" else ""}",
                                 style = MaterialTheme.typography.labelLarge
                             )
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Button(
                                     onClick = { trackPickerLauncher.launch(arrayOf("audio/*")) },
-                                    modifier = Modifier.height(32.dp)
+                                    modifier = Modifier.height(36.dp),
+                                    contentPadding = PaddingValues(8.dp)
                                 ) {
-                                    Icon(Icons.Filled.Add, "Add", modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Filled.Add, "Add", modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Add Tracks")
+                                    Text("Add", style = MaterialTheme.typography.labelMedium)
                                 }
                                 if (state.selectedTracks.isNotEmpty()) {
                                     Button(
                                         onClick = { viewModel.deleteSelectedTracks(context) },
-                                        modifier = Modifier.height(32.dp),
+                                        modifier = Modifier.height(36.dp),
+                                        contentPadding = PaddingValues(8.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.error
                                         )
                                     ) {
-                                        Icon(Icons.Filled.Delete, "Delete", modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Filled.Delete, "Delete", modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Delete")
+                                        Text("Delete", style = MaterialTheme.typography.labelMedium)
                                     }
                                 }
                             }
@@ -210,10 +244,12 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
 
                         // Sort options
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            listOf(SortOption.ByName, SortOption.BySize).forEach { option ->
+                            listOf(SortOption.ByName, SortOption.BySize, SortOption.ByBPM).forEach { option ->
                                 FilterChip(
                                     selected = state.sortOption == option,
                                     onClick = { viewModel.setSortOption(option, context) },
@@ -223,9 +259,11 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
                                                 SortOption.ByName -> "Name"
                                                 SortOption.BySize -> "Size"
                                                 SortOption.ByBPM -> "BPM"
-                                            }
+                                            },
+                                            style = MaterialTheme.typography.labelSmall
                                         )
-                                    }
+                                    },
+                                    modifier = Modifier.height(32.dp)
                                 )
                             }
                         }
@@ -246,7 +284,7 @@ fun WalkmanManagerScreen(viewModel: WalkmanViewModel) {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         items(state.tracks, key = { it.uri.toString() }) { track ->
                             TrackItem(
@@ -302,8 +340,8 @@ fun TrackItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() }
-            .padding(4.dp),
-        shape = RoundedCornerShape(8.dp),
+            .padding(2.dp),
+        shape = RoundedCornerShape(6.dp),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer 
                 else MaterialTheme.colorScheme.surface,
         border = if (isSelected) {
@@ -313,46 +351,60 @@ fun TrackItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Filled.MusicNote,
                 "Music",
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp)
+                    .padding(horizontal = 10.dp)
             ) {
                 Text(
                     track.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    track.sizeDisplay,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        track.sizeDisplay,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        track.bpmDisplay,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             IconButton(
-                onClick = { showDeleteDialog = true }
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.size(32.dp)
             ) {
-                Icon(Icons.Filled.DeleteOutline, "Delete")
+                Icon(Icons.Filled.DeleteOutline, "Delete", modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
 @Composable
-private fun WalkmanManagerTheme(content: @Composable () -> Unit) {
+private fun WalkManagerTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(),
         content = content

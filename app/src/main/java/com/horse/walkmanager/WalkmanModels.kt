@@ -17,6 +17,9 @@ data class Track(
             size >= 1_000_000 -> "%.1f MB".format(size / 1_000_000.0)
             else -> "%.1f KB".format(size / 1_000.0)
         }
+    
+    val bpmDisplay: String
+        get() = bpm?.let { "$it BPM" } ?: "—"
 
     companion object {
         fun fromDocumentFile(doc: DocumentFile): Track? {
@@ -28,7 +31,7 @@ data class Track(
                     fileName = doc.name ?: "unknown.mp3",
                     size = doc.length(),
                     mimeType = type ?: "audio/mpeg",
-                    bpm = null // Will extract later if implemented
+                    bpm = null
                 )
             } else {
                 null
@@ -40,7 +43,7 @@ data class Track(
 sealed class SortOption {
     object ByName : SortOption()
     object BySize : SortOption()
-    object ByBPM : SortOption() // For future use
+    object ByBPM : SortOption()
 }
 
 data class WalkmanManagerState(
