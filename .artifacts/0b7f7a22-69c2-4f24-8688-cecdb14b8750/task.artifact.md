@@ -1,11 +1,8 @@
-- [/] Harden High-Performance Scanner
-    - [ ] Add `getColumnIndexOrThrow` and validation
-    - [ ] Implement robust null-handling for cursor data
-    - [ ] Add detailed exception logging to UI error state
-- [/] Clean up Code Analysis Warnings
-    - [ ] Remove unused imports in `MainActivity.kt`
-    - [ ] Fix empty `onNewIntent` and foldable `if` stubs
-    - [ ] Standardize property naming in `WalkmanViewModel.kt`
-    - [ ] Use KTX extensions for `SharedPreferences`
-- [ ] Perform Deep Clean and Rebuild
-- [ ] Commit changes to Git
+- [x] Standardize theme names to `Theme.WalkManager`
+    - [x] Update `app/src/main/res/values/themes.xml`
+    - [x] Update `app/src/main/res/values-night/themes.xml`
+- [x] Optimize BPM extraction in `WalkmanViewModel.kt`
+    - [x] Use parallel processing for BPM retrieval
+    - [x] Fixed invalid `METADATA_KEY_BEATS_PER_MINUTE` constant
+- [x] Run Gradle Sync and Build
+- [x] Commit and Push changes
