@@ -7,12 +7,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
@@ -87,7 +90,13 @@ fun WalkManagerScreen(viewModel: WalkmanViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
-            title = { Text("WalkManager") },
+            title = {
+                Image(
+                    painter = painterResource(id = R.drawable.walkmanager_logo_text),
+                    contentDescription = "WalkManager",
+                    modifier = Modifier.height(28.dp)
+                )
+            },
             actions = {
                 if (state.walkmanRootUri != null) {
                     IconButton(
@@ -247,7 +256,7 @@ fun WalkManagerScreen(viewModel: WalkmanViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                                .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(SortOption.ByName, SortOption.BySize, SortOption.ByBPM).forEach { option ->
@@ -406,8 +415,29 @@ fun TrackItem(
 
 @Composable
 private fun WalkManagerTheme(content: @Composable () -> Unit) {
+    val walkmanOrange = Color(0xFFF15D22)
+    val darkScheme = darkColorScheme(
+        primary = walkmanOrange,
+        onPrimary = Color.Black,
+        primaryContainer = walkmanOrange.copy(alpha = 0.2f),
+        onPrimaryContainer = walkmanOrange,
+        secondary = walkmanOrange,
+        onSecondary = Color.Black,
+        tertiary = walkmanOrange,
+        onTertiary = Color.Black,
+        error = Color(0xFFCF6679),
+        onError = Color.Black,
+        background = Color(0xFF121212),
+        onBackground = Color.White,
+        surface = Color(0xFF121212),
+        onSurface = Color.White,
+        surfaceVariant = Color(0xFF1E1E1E),
+        onSurfaceVariant = Color.White.copy(alpha = 0.7f),
+        outline = walkmanOrange.copy(alpha = 0.5f)
+    )
+
     MaterialTheme(
-        colorScheme = darkColorScheme(),
+        colorScheme = darkScheme,
         content = content
     )
 }

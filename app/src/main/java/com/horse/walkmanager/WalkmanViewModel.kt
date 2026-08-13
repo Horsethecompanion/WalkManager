@@ -13,9 +13,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.ArrayDeque
@@ -95,30 +92,25 @@ class WalkmanViewModel : ViewModel() {
             try {
                 _state.value = _state.value.copy(isLoading = true, error = null)
                 
-                val rawTracks = loadTracksHighPerformance(context.applicationContext, rootUri)
-                
-                // Extract BPM in parallel chunks to avoid overwhelming the system
-                val tracks = coroutineScope {
-                    rawTracks.chunked(20).flatMap { chunk ->
-                        chunk.map { track ->
-                            async {
-                                if (track.bpm == null) {
-                                    track.copy(bpm = extractBPM(context, track.uri))
-                                } else {
-                                    track
-                                }
-                            }
-                        }.awaitAll()
-                    }
-                }.sortedWith(
-                    compareBy { 
-                        when (_state.value.sortOption) {
-                            SortOption.ByName -> it.name.lowercase()
-                            SortOption.BySize -> it.size
-                            SortOption.ByBPM -> it.bpm ?: Int.MAX_VALUE // Put unknown BPM at end
+                val tracks = loadTracksHighPerformance(context.applicationContext, rootUri)
+                    .map { track ->
+                        // Extract BPM if not already present
+                        if (track.bpm == null) {
+                            val bpm = extractBPM(context, track.uri)
+                            track.copy(bpm = bpm)
+                        } else {
+                            track
                         }
                     }
-                )
+                    .sortedWith(
+                        compareBy { 
+                            when (_state.value.sortOption) {
+                                SortOption.ByName -> it.name.lowercase()
+                                SortOption.BySize -> it.size
+                                SortOption.ByBPM -> it.bpm ?: Int.MAX_VALUE // Put unknown BPM at end
+                            }
+                        }
+                    )
 
                 _state.value = _state.value.copy(
                     tracks = tracks,
@@ -138,10 +130,9 @@ class WalkmanViewModel : ViewModel() {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(context, trackUri)
             
-            // Note: Standard MediaMetadataRetriever doesn't always have a direct BPM key.
-            // We use a placeholder here as METADATA_KEY_BEATS_PER_MINUTE is not available in standard SDK.
-            // If this is a specific device or custom build, we might need a specific key index.
-            val bpmString = null // retriever.extractMetadata(...) 
+            // METADATA_KEY_BEATS_PER_MINUTE is added in API 36. 
+            // For now, we'll return null as it's not available in API 34.
+            val bpmString = null // retriever.extractMetadata(36) 
             retriever.release()
             
             bpmString?.toIntOrNull()?.takeIf { it > 0 }
