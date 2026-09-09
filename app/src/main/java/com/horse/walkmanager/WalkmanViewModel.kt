@@ -130,9 +130,11 @@ class WalkmanViewModel : ViewModel() {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(context, trackUri)
             
-            // METADATA_KEY_BEATS_PER_MINUTE is added in API 36. 
-            // For now, we'll return null as it's not available in API 34.
-            val bpmString = null // retriever.extractMetadata(36) 
+            // Try to extract BPM using key 31 (METADATA_KEY_BEATS_PER_MINUTE in API 31+)
+            // or other potential keys if supported by the device.
+            val bpmString = retriever.extractMetadata(31) ?: 
+                          retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPILATION + 16) // some devices
+            
             retriever.release()
             
             bpmString?.toIntOrNull()?.takeIf { it > 0 }

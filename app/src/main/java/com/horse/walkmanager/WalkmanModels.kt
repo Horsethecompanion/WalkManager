@@ -19,7 +19,7 @@ data class Track(
         }
     
     val bpmDisplay: String
-        get() = bpm?.let { "$it BPM" } ?: "—"
+        get() = bpm?.let { "$it" } ?: "???"
 
     companion object {
         fun fromDocumentFile(doc: DocumentFile): Track? {
