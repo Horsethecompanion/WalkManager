@@ -51,6 +51,8 @@ data class WalkmanManagerState(
     val tracks: List<Track> = emptyList(),
     val isLoading: Boolean = false,
     val isWaitingForMount: Boolean = false,
+    val isSyncingBpm: Boolean = false,
+    val syncProgress: Float = 0f,
     val error: String? = null,
     val sortOption: SortOption = SortOption.ByName,
     val selectedTracks: Set<String> = emptySet()

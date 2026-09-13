@@ -1,8 +1,15 @@
-- [x] Standardize theme names to `Theme.WalkManager`
-    - [x] Update `app/src/main/res/values/themes.xml`
-    - [x] Update `app/src/main/res/values-night/themes.xml`
-- [x] Optimize BPM extraction in `WalkmanViewModel.kt`
-    - [x] Use parallel processing for BPM retrieval
-    - [x] Fixed invalid `METADATA_KEY_BEATS_PER_MINUTE` constant
-- [x] Run Gradle Sync and Build
-- [x] Commit and Push changes
+- [x] Update dependencies in `app/build.gradle.kts`
+- [x] Implement Room database for BPM caching
+    - [x] Create `BpmEntity`
+    - [x] Create `BpmDao`
+    - [x] Create `BpmDatabase`
+- [x] Implement Online BPM fetching
+    - [x] Create `BpmApiService` (Retrofit)
+    - [x] Create `BpmRepository`
+- [x] Integrate BPM syncing in `WalkmanViewModel`
+    - [x] Add `mp3agic` for metadata writing
+    - [x] Implement "Sync & Fix" logic
+- [x] UI Enhancements in `MainActivity`
+    - [x] Add "Sync BPM" button
+    - [x] Show sync progress
+- [x] Verification and Testing

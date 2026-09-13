@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,13 +100,37 @@ fun WalkManagerScreen(viewModel: WalkmanViewModel) {
             actions = {
                 if (state.walkmanRootUri != null) {
                     IconButton(
-                        onClick = { viewModel.refreshTracks(context) }
+                        onClick = { viewModel.syncBpm(context) },
+                        enabled = !state.isSyncingBpm
+                    ) {
+                        if (state.isSyncingBpm) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Icon(Icons.Filled.Sync, "Sync BPM")
+                        }
+                    }
+                    IconButton(
+                        onClick = { viewModel.refreshTracks(context) },
+                        enabled = !state.isSyncingBpm && !state.isLoading
                     ) {
                         Icon(Icons.Filled.Refresh, "Refresh")
                     }
                 }
             }
         )
+
+        if (state.isSyncingBpm) {
+            LinearProgressIndicator(
+                progress = state.syncProgress,
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
 
         // Error Snackbar
         if (state.error != null) {
