@@ -1,15 +1,6 @@
-- [x] Update dependencies in `app/build.gradle.kts`
-- [x] Implement Room database for BPM caching
-    - [x] Create `BpmEntity`
-    - [x] Create `BpmDao`
-    - [x] Create `BpmDatabase`
-- [x] Implement Online BPM fetching
-    - [x] Create `BpmApiService` (Retrofit)
-    - [x] Create `BpmRepository`
-- [x] Integrate BPM syncing in `WalkmanViewModel`
-    - [x] Add `mp3agic` for metadata writing
-    - [x] Implement "Sync & Fix" logic
-- [x] UI Enhancements in `MainActivity`
-    - [x] Add "Sync BPM" button
-    - [x] Show sync progress
-- [x] Verification and Testing
+- [ ] Add `INTERNET` permission to `AndroidManifest.xml`
+- [ ] Implement MusicBrainz API in `BpmApiService.kt`
+- [ ] Implement network fetching logic in `BpmRepository.kt`
+- [ ] Update `WalkmanViewModel.kt` with robust BPM extraction and real sync logic
+- [ ] UI Cleanup in `MainActivity.kt` (Icon update, selection fix)
+- [ ] Verify build and functionality

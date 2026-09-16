@@ -148,6 +148,7 @@ class WalkmanViewModel : ViewModel() {
                 }
 
                 tracksToSync.forEachIndexed { index, track ->
+                    // Attempt to parse artist and title from filename
                     val nameParts = track.name.split(" - ")
                     if (nameParts.size >= 2) {
                         val artist = nameParts[0].trim()
@@ -212,10 +213,21 @@ class WalkmanViewModel : ViewModel() {
         return try {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(context, trackUri)
-            val bpmString = retriever.extractMetadata(31) ?: 
-                          retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPILATION + 16)
+            
+            // Try known BPM keys
+            // 31 is the official METADATA_KEY_BEATS_PER_MINUTE in newer APIs
+            // Some devices use generic technical metadata keys
+            val keysToTry = listOf(31, 1000, 1001) 
+            var bpm: Int? = null
+            
+            for (key in keysToTry) {
+                val value = retriever.extractMetadata(key)
+                bpm = value?.toIntOrNull()?.takeIf { it > 0 }
+                if (bpm != null) break
+            }
+            
             retriever.release()
-            bpmString?.toIntOrNull()?.takeIf { it > 0 }
+            bpm
         } catch (e: Exception) {
             null
         }

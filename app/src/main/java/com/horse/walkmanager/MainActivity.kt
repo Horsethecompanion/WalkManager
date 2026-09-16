@@ -110,7 +110,7 @@ fun WalkManagerScreen(viewModel: WalkmanViewModel) {
                                 color = MaterialTheme.colorScheme.primary
                             )
                         } else {
-                            Icon(Icons.Filled.Sync, "Sync BPM")
+                            Icon(Icons.Filled.CloudDownload, "Fetch BPM Online")
                         }
                     }
                     IconButton(
@@ -323,8 +323,8 @@ fun WalkManagerScreen(viewModel: WalkmanViewModel) {
                         items(state.tracks, key = { it.uri.toString() }) { track ->
                             TrackItem(
                                 track = track,
-                                isSelected = track.fileName in state.selectedTracks,
-                                onSelect = { viewModel.toggleTrackSelection(track.fileName) },
+                                isSelected = track.uri.toString() in state.selectedTracks,
+                                onSelect = { viewModel.toggleTrackSelection(track.uri.toString()) },
                                 onDelete = { viewModel.deleteTrack(track, context) }
                             )
                         }
